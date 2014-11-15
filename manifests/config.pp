@@ -83,6 +83,7 @@ class znc::config (
     ensure  => file,
     content => template('znc/configs/znc.conf.header.erb'),
     require => File["${::znc::params::zc_config_dir}/configs"],
+    notify  => Exec['update-znc-config'],
   }
 
   file { "${::znc::params::zc_config_dir}/configs/znc.conf":
@@ -99,7 +100,7 @@ class znc::config (
   }
 
   # Bootstrap SSL
-  if $ssl == true and !$ssl_source {
+  if $ssl and !$ssl_source {
     file { "${::znc::params::zc_config_dir}/ssl":
       ensure => directory,
       mode   => '0600',
@@ -142,6 +143,12 @@ class znc::config (
     command => "cat ${::znc::params::zc_config_dir}/configs/znc.conf.header > ${::znc::params::zc_config_dir}/configs/znc.conf",
     creates => "${::znc::params::zc_config_dir}/configs/znc.conf",
     require => File["${::znc::params::zc_config_dir}/configs/znc.conf.header"],
+  }
+
+  # Update config file
+  exec {'update-znc-config':
+    command => "sed -i -e \"1r ${::znc::params::zc_config_dir}/configs/znc.conf.header\" -e \"1,/<\/Listener>/d\" ${::znc::params::zc_config_dir}/configs/znc.conf",
+    notify  => Exec['znc-reload'],
   }
 
 }
